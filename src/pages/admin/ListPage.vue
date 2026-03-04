@@ -5,23 +5,24 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { api } from '../../api/shorturl'
 import { useRouter } from 'vue-router'
 
+const router = useRouter()
+
 // --- 状态定义 ---
 const searchForm = reactive({ name: '' })
 const tableData = ref<any[]>([])
-const tableLoading = ref(false) // 表格加载锁
-const submitLoading = ref(false) // 提交按钮防重复点击锁
+const tableLoading = ref(false) 
+const submitLoading = ref(false) 
 
-const router = useRouter()
+// 🌟 新增：存放被勾选的行 ID 集合
+const selectedIds = ref<number[]>([])
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('新增短链')
 const currentEditId = ref<number | null>(null)
 
-// 表单相关
 const formRef = ref<FormInstance>()
 const formData = reactive({ name: '', originalUrl: '' })
 
-// 表单校验规则（对应文档：URL必填+格式校验）
 const rules = reactive<FormRules>({
   name: [{ required: true, message: '请输入短链接名称', trigger: 'blur' }],
   originalUrl: [
@@ -32,12 +33,11 @@ const rules = reactive<FormRules>({
 
 // --- 核心操作方法 ---
 
-// 1. 获取/搜索列表
 const loadData = async () => {
   tableLoading.value = true
   try {
     const res: any = await api.getList(searchForm.name)
-    tableData.value = res.data // 绑定后端返回的数据
+    tableData.value = res.data 
   } catch (error) {
     console.error('获取列表失败', error)
   } finally {
@@ -45,18 +45,56 @@ const loadData = async () => {
   }
 }
 
-// 2. 点击新增按钮
+// 🌟 新增：监听表格多选框变化
+const handleSelectionChange = (selection: any[]) => {
+  selectedIds.value = selection.map(item => item.id)
+}
+
+// 🌟 新增：批量删除操作
+const handleBatchDelete = () => {
+  if (selectedIds.value.length === 0) return ElMessage.warning('请先勾选要删除的数据')
+  
+  ElMessageBox.confirm(`确定要永久删除选中的 ${selectedIds.value.length} 条短链吗？`, '批量删除警告', {
+    type: 'error',
+    confirmButtonText: '确定删除',
+    cancelButtonText: '取消'
+  }).then(async () => {
+    try {
+      await api.batchRemove(selectedIds.value)
+      ElMessage.success('批量删除成功')
+      loadData() 
+    } catch (error) {
+      console.error(error)
+    }
+  }).catch(() => {})
+}
+
+// 🌟 新增：清理过期垃圾操作
+const handleCleanExpired = () => {
+  ElMessageBox.confirm('这将会扫描并永久删除所有已过期的 24小时演示短链，确定执行吗？', '清理过期垃圾', {
+    type: 'warning',
+    confirmButtonText: '立即清理',
+    cancelButtonText: '取消'
+  }).then(async () => {
+    try {
+      const res: any = await api.removeExpired()
+      ElMessage.success(res.message || '清理完成')
+      loadData() 
+    } catch (error) {
+      console.error(error)
+    }
+  }).catch(() => {})
+}
+
 const handleAdd = () => {
   dialogTitle.value = '新增短链'
   currentEditId.value = null
   formData.name = ''
   formData.originalUrl = ''
   dialogVisible.value = true
-  // 清除上次的校验提示
   setTimeout(() => formRef.value?.clearValidate(), 0)
 }
 
-// 3. 点击编辑按钮
 const handleEdit = (row: any) => {
   dialogTitle.value = '编辑短链'
   currentEditId.value = row.id
@@ -65,12 +103,11 @@ const handleEdit = (row: any) => {
   dialogVisible.value = true
 }
 
-// 4. 提交表单 (新增或编辑)
 const submitForm = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (valid) {
-      submitLoading.value = true // 开启按钮 loading，防止连点
+      submitLoading.value = true 
       try {
         if (currentEditId.value) {
           await api.update(currentEditId.value, formData)
@@ -80,17 +117,14 @@ const submitForm = async () => {
           ElMessage.success('新增成功')
         }
         dialogVisible.value = false
-        loadData() // 操作成功后刷新列表
-      } catch (error) {
-        // 错误由 http 拦截器处理
-      } finally {
-        submitLoading.value = false // 解除 loading
+        loadData() 
+      } catch (error) {} finally {
+        submitLoading.value = false 
       }
     }
   })
 }
 
-// 5. 删除操作
 const handleDelete = (row: any) => {
   ElMessageBox.confirm(`确定要删除短链 "${row.name}" 吗？`, '警告', {
     type: 'warning',
@@ -99,11 +133,10 @@ const handleDelete = (row: any) => {
   }).then(async () => {
     await api.remove(row.id)
     ElMessage.success('删除成功')
-    loadData() // 刷新列表
+    loadData() 
   }).catch(() => {})
 }
 
-// 6. 启用/禁用操作
 const handleToggleStatus = async (row: any) => {
   try {
     if (row.status === true) {
@@ -113,15 +146,13 @@ const handleToggleStatus = async (row: any) => {
       await api.enable(row.id)
       ElMessage.success(`已启用: ${row.name}`)
     }
-    loadData() // 刷新列表保证一致性
+    loadData() 
   } catch (error) {
     console.error(error)
   }
 }
 
-// 7. 复制完整短链接到剪贴板
 const handleCopy = async (shortCode: string) => {
-  // 拼装出完整的可跳转链接
   const fullUrl = `http://localhost:8080/${shortCode}`
   try {
     await navigator.clipboard.writeText(fullUrl)
@@ -131,20 +162,18 @@ const handleCopy = async (shortCode: string) => {
   }
 }
 
-// 8. 退出登录操作
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出当前账号吗？', '退出提示', {
     confirmButtonText: '确定退出',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    localStorage.removeItem('token') // 删掉本地的过期钥匙
+    localStorage.removeItem('token') 
     ElMessage.success('已安全退出')
-    router.push('/login') // 跳转回登录页
+    router.push('/login') 
   }).catch(() => {})
 }
 
-// 初始化页面时加载数据
 onMounted(() => {
   loadData()
 })
@@ -156,7 +185,19 @@ onMounted(() => {
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <h3 style="margin: 0;">🔗 短链接管控后台</h3>
-          <el-button type="danger" plain size="small" @click="handleLogout">退出登录</el-button>
+          <div>
+            <el-button size="small" @click="router.push('/demo')">
+              🏠 返回前台
+            </el-button>
+
+            <el-button type="primary" plain size="small" @click="router.push('/admin/apps')" style="margin-left: 10px;">
+              ⚙️ API 应用管理
+            </el-button>
+            
+            <el-button type="danger" plain size="small" @click="handleLogout" style="margin-left: 10px;">
+              退出登录
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -169,10 +210,29 @@ onMounted(() => {
             <el-button type="primary" @click="loadData">查询</el-button>
           </el-form-item>
         </el-form>
-        <el-button type="success" @click="handleAdd">新增短链</el-button>
+        
+        <div>
+          <el-button type="warning" plain @click="handleCleanExpired">
+            🧹 清理过期
+          </el-button>
+          <el-button type="danger" :disabled="selectedIds.length === 0" @click="handleBatchDelete">
+            🗑️ 批量删除
+          </el-button>
+          <el-button type="success" @click="handleAdd">
+            ➕ 新增短链
+          </el-button>
+        </div>
       </div>
 
-      <el-table v-loading="tableLoading" :data="tableData" border style="width: 100%; margin-top: 15px;">
+      <el-table 
+        v-loading="tableLoading" 
+        :data="tableData" 
+        border 
+        style="width: 100%; margin-top: 15px;"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="50" align="center" />
+        
         <el-table-column prop="name" label="名称" width="180" />
         <el-table-column prop="shortCode" label="短链接" width="180">
           <template #default="scope">
@@ -183,7 +243,8 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="originalUrl" label="原始长链接" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="clickCount" label="访问次数" width="100" align="center" />
+        <el-table-column prop="status" label="状态" width="100" align="center">
           <template #default="scope">
             <el-tag :type="scope.row.status === true ? 'success' : 'danger'">
               {{ scope.row.status === true ? '已启用' : '已禁用' }}
@@ -191,7 +252,7 @@ onMounted(() => {
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="230" fixed="right">
           <template #default="scope">
             <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
             <el-button 

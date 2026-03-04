@@ -2,11 +2,19 @@
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { api } from '../../api/shorturl'
+import { useRouter } from 'vue-router' // 🌟 新增：引入 Vue Router 路由钩子
+
 // 响应式状态变量
 const originalUrl = ref('')
 const shortUrl = ref('')
 const isGenerating = ref(false)
 const showResult = ref(false)
+
+// 🌟 新增：实例化 router 并编写跳转方法
+const router = useRouter()
+const goToLogin = () => {
+  router.push('/login')
+}
 
 // 真实生成短链的方法
 const handleGenerate = async () => {
@@ -18,16 +26,16 @@ const handleGenerate = async () => {
   isGenerating.value = true // 开启按钮 loading
   
   try {
-    // 🌟 1. 向真实后端发送请求！因为前台用户没填名称，我们给个默认名字
+    // 向真实后端发送请求
     const res: any = await api.generate({
       originalUrl: originalUrl.value,
       name: '前台自助生成' 
     })
 
-    // 🌟 2. 从后端返回的数据里，掏出刚刚在数据库里生成的真实短码
+    // 从后端返回的数据里掏出真实短码
     const realShortCode = res.data.shortCode
     
-    // 🌟 3. 拼装出完整的短链接地址展现给用户
+    // 拼装出完整的短链接地址展现给用户
     shortUrl.value = `http://localhost:8080/${realShortCode}`
     
     showResult.value = true
@@ -52,6 +60,13 @@ const handleCopy = async () => {
 
 <template>
   <div class="demo-container">
+    
+    <div class="header-nav">
+      <el-button type="primary" plain round @click="goToLogin">
+        后台管理系统 ➔
+      </el-button>
+    </div>
+
     <el-card class="demo-card" shadow="hover">
       <template #header>
         <div class="card-header">
@@ -102,12 +117,20 @@ const handleCopy = async () => {
 <style scoped>
 /* 页面居中布局 */
 .demo-container {
+  position: relative; /* 🌟 新增：设置为相对定位，作为绝对定位按钮的父级参考 */
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh; /* 撑满整个屏幕高度 */
   background-color: #f5f7fa;
   padding: 20px;
+}
+
+/* 🌟 新增：让登录按钮绝对定位在右上角 */
+.header-nav {
+  position: absolute;
+  top: 30px;
+  right: 40px;
 }
 
 /* 卡片样式 */

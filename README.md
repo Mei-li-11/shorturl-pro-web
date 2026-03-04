@@ -1,16 +1,17 @@
 # ShortURL Pro - 短链接服务系统 (前端工程)
 
-本项目是一个基于 Vue 3 + TypeScript + Vite 构建的短链接管理后台与演示页面，主要包含前台短链自助生成功能与后台完整的短链管控 (CRUD) 能力。
+本项目是一个基于 Vue 3 + TypeScript + Vite 构建的短链接管理后台与演示页面，主要包含前台短链自助生成功能与后台完整的短链管控 (CRUD) 能力，以及新增的OpenAPI应用管理功能。
 
 ## 1. 项目简介
 
-ShortURL Pro 是一个专业的短链接服务系统，旨在提供简单、高效的 URL 缩短服务，帮助用户管理和追踪短链接的使用情况。系统分为前台演示页面和后台管理系统两部分。
+ShortURL Pro 是一个专业的短链接服务系统，旨在提供简单、高效的 URL 缩短服务，帮助用户管理和追踪短链接的使用情况。系统分为前台演示页面和后台管理系统两部分，新增了OpenAPI应用管理功能，支持API密钥的生成和管理。
 
 ### 主要功能
 - 📱 前台短链接生成与展示
 - 🔧 后台短链接管理（创建、查看、编辑、删除）
 - 📊 短链接访问统计
 - 🔐 后台用户登录认证
+- 🔑 OpenAPI应用管理（生成AK/SK、封禁/解封应用）
 - 🎨 响应式设计，适配多种设备
 
 ## 2. 技术栈
@@ -70,7 +71,8 @@ shorturl-pro-web/
 │   ├── pages/         # 页面组件
 │   │   ├── admin/     # 后台管理页面
 │   │   │   ├── ListPage.vue    # 短链接列表页面
-│   │   │   └── LoginPage.vue   # 登录页面
+│   │   │   ├── LoginPage.vue   # 登录页面
+│   │   │   └── AppManage.vue   # OpenAPI应用管理页面
 │   │   └── demo/      # 前台演示页面
 │   │       └── DemoPage.vue    # 短链接生成演示页面
 │   ├── router/        # 路由配置
@@ -98,16 +100,37 @@ shorturl-pro-web/
 - 短链接访问统计查看
 - 支持按条件筛选和搜索
 
+### 6.3 OpenAPI应用管理
+- 新建应用并自动生成Access Key和Secret Key
+- 查看所有应用的状态和密钥信息
+- 单个应用的封禁/解封操作
+- 批量封禁应用功能
+- 安全提示：封禁应用会级联熔断该客户所有的短链接
+
 ## 7. API 接口
 
 项目使用 Mock.js 模拟 API 响应，主要接口包括：
 
-- **POST /api/shorturl/create** - 创建短链接
-- **GET /api/shorturl/list** - 获取短链接列表
-- **PUT /api/shorturl/update** - 更新短链接
-- **DELETE /api/shorturl/delete** - 删除短链接
-- **GET /api/shorturl/stats** - 获取短链接统计
+### 7.1 短链接管理接口
+- **GET /api/shortlinks** - 获取短链接列表
+- **POST /api/shortlinks** - 创建短链接（后台）
+- **PUT /api/shortlinks/:id** - 更新短链接
+- **DELETE /api/shortlinks/:id** - 删除短链接
+- **PATCH /api/shortlinks/:id/enable** - 启用短链接
+- **PATCH /api/shortlinks/:id/disable** - 禁用短链接
+- **POST /api/shortlinks/generate** - 生成短链接（前台）
+- **DELETE /api/shortlinks/batch** - 批量删除短链接
+- **DELETE /api/shortlinks/expired** - 清理过期短链接
+
+### 7.2 用户认证接口
 - **POST /api/auth/login** - 用户登录
+
+### 7.3 OpenAPI应用管理接口
+- **GET /api/admin/clients** - 获取应用列表
+- **POST /api/admin/clients** - 创建应用
+- **PATCH /api/admin/clients/:id/enable** - 启用应用
+- **PATCH /api/admin/clients/:id/disable** - 禁用应用
+- **PATCH /api/admin/clients/batch/disable** - 批量禁用应用
 
 ## 8. 部署说明
 

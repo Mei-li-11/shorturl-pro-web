@@ -1,15 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 引入你的三个页面组件 (注意检查路径是否和你的项目一致)
+// 引入你的页面组件 (注意检查路径是否和你的项目一致)
 import DemoPage from '../pages/demo/DemoPage.vue'
 import ListPage from '../pages/admin/ListPage.vue'
 import LoginPage from '../pages/admin/LoginPage.vue'
+// 👇 🌟 新增：引入应用管理页面
+import AppManage from '../pages/admin/AppManage.vue' 
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/demo', // 前台演示页（任何人都能进）[cite: 173, 196]
+      path: '/demo', // 前台演示页（任何人都能进）
       name: 'Demo',
       component: DemoPage
     },
@@ -19,10 +21,17 @@ const router = createRouter({
       component: LoginPage
     },
     {
-      path: '/admin', // 管控后台 
+      path: '/admin', // 管控后台主页 (短链列表)
       name: 'Admin',
       component: ListPage,
-      // 🌟 给这个路由贴个标签：requiresAuth 代表“需要身份验证”
+      meta: { requiresAuth: true } 
+    },
+    // 👇 🌟 新增：OpenAPI 应用管理页的路由
+    {
+      path: '/admin/apps', 
+      name: 'AppManage',
+      component: AppManage,
+      // 同样贴上需要身份验证的标签，被下方的保安死死守住！
       meta: { requiresAuth: true } 
     },
     {
